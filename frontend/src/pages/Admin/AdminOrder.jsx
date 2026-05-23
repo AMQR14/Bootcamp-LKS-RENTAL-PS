@@ -2,20 +2,200 @@ import { Edit, MoveLeft, Plus, Search, Trash, X } from "lucide-react"
 import AdminLayout from "../../layouts/AdminLayout"
 import Dialog from "../../assets/Dialog"
 import { Link } from "react-router-dom"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import api from '../../lib/api'
+import { useAuth } from "../../context/AuthContext"
 
 export default function AdminOrder(){
+    const {user} = useAuth()
+
+    const userid = user.data?.id
+
+    const [orders, setOrders] = useState([])
+    const [loading, setLoading] = useState(false)
+    const [formCreate, setFormCreate] = useState({
+        user_id: '',
+        level_id: '',
+        time: '',
+        price_payed: '',
+        status: '',
+    })
+    const [errorCreate, setErrorCreate] = useState({})
+    const [formEdit, setFormEdit] = useState({
+        user_id: '',
+        level_id: '',
+        time: '',
+        price_payed: '',
+        status: '',
+    })
+    const [errorEdit, setErrorEdit] = useState({})
+    const [orderid, setOrderid] = useState('')
+
     const [create , setCreate] = useState(false)
 
     const openCreate = () => {
         setCreate(!create)
+        setFormCreate('')
+        setErrorCreate('')
+        setLevelid('')
+        setTime('')
+        setLevelPrice(0)
     }
 
     const [edit , setEdit] = useState(false)
 
-    const openEdit = () => {
+    const openEdit = (id) => {
         setEdit(!edit)
+        setFormEdit('')
+        setErrorEdit('')
+        setOrderid(id)
+        setLevelid('')
+        setTime('')
+        setLevelPrice(0)
+        
     }
+
+    async function handleCreate(e) {
+        e.preventDefault()
+        setErrorCreate({})
+        setLoading(false)
+        try{
+            await api.post('/order', {
+                user_id: userid,
+                level_id: levelid,
+                time: time,
+                price_payed: Math.round(levelPrice * time),
+                status: formCreate.status,
+            })
+            openCreate()
+            fetchAllOrder()
+        }catch(err){
+            if(err.response.status == 422){
+                setErrorCreate(err.response.data.errors)
+            }
+        }finally{
+            setLoading(false)
+        }
+    }
+
+    async function handleEdit(e) {
+        e.preventDefault()
+        setErrorEdit({})
+        setLoading(false)
+        try{
+            await api.put(`/order/${orderid}`, {
+                user_id: userid,
+                level_id: levelid,
+                time: time,
+                price_payed: Math.round(levelPrice * time),
+                status: formEdit.status,
+            })
+            openEdit()
+            fetchAllOrder()
+        }catch(err){
+            if(err.response.status == 422){
+                setErrorEdit(err.response.data.errors)
+            }
+        }finally{
+            setLoading(false)
+        }
+    }
+    
+    async function handleDelete(id) {
+        setLoading(true)
+        try{
+            await api.delete(`/order/${id}`)
+            fetchAllOrder()
+        }finally{
+            setLoading(false)
+        }
+    }
+
+    async function fetchAllOrder() {
+        setLoading(true)
+        try{
+            const res = await api.get('/order')
+            setOrders(res.data.orders)
+        }finally{
+            setLoading(false)
+        }
+    }
+
+    useEffect(()=>{
+        fetchAllOrder()
+    }, [])
+
+    async function fetchOrder() {
+        setLoading(true)
+        try{
+            const res = await api.get(`/order/${orderid}`)
+            setFormEdit(res.data.order)
+            setLevelid(res.data.order.level_id)
+            setTime(res.data.order.time)
+            // console.log(res.data.order)
+        }finally{
+            setLoading(false)
+        }
+    }
+
+    useEffect(()=>{
+        if(orderid){
+            fetchOrder()
+        }
+    }, [orderid])
+
+    const [levels, setLevels] = useState([])
+
+    async function fetchLevel() {
+        setLoading(true)
+        try{
+            const res = await api.get('/level')
+            setLevels(res.data.levels)
+        }finally{
+            setLoading(false)
+        }
+    }
+
+    useEffect(()=>{
+        fetchLevel()
+    }, [])
+
+    //levelid
+
+    const [levelid, setLevelid] = useState('')
+
+    const putLevelid = (e) =>{
+        setLevelid(e.target.value)
+        console.log(levelid)
+    }
+
+    //time
+
+    const [time, setTime] = useState(1)
+
+    const putTime = (e) =>{
+        setTime(e.target.value)
+        console.log(time)
+    }
+
+    const [levelPrice, setLevelPrice] = useState(0)
+
+    async function fetchLevelPrice() {
+        setLoading(true)
+        try{
+            const res = await api.get(`/level/${levelid}`)
+            setLevelPrice(res.data.level.price)
+            console.log(res.data.level.price)
+        }finally{
+            setLoading(false)
+        }
+    } 
+
+    useEffect(()=>{
+        if(levelid){
+            fetchLevelPrice()
+        }
+    }, [levelid])
 
     return (
         <AdminLayout>
@@ -28,39 +208,37 @@ export default function AdminOrder(){
                             <X/>
                         </div>
                     </div>
-                    <form action="" className="mt-8 flex flex-col gap-4">
+                    <form action="" className="mt-8 flex flex-col gap-4" onSubmit={handleCreate}>
                         <div className="flex flex-col gap-2">
                             <label htmlFor="" className="font-semibold">Level</label>
-                            <select name="" id="" className="[#2c3258] border-[#353b64] hover:border-[#505a97] transition-all border-2 rounded-md p-2 px-3 focus:outline-none">
+                            <select name="" id="" className="[#2c3258] border-[#353b64] hover:border-[#505a97] transition-all border-2 rounded-md p-2 px-3 focus:outline-none"value={levelid} onChange={putLevelid}>
                                 <option value="" disabled selected className="bg-[#2c3258]">Select Level</option>
-                                <option value="" className="bg-[#2c3258]">Reguler</option>
-                                <option value="" className="bg-[#2c3258]">VIP</option>
-                                <option value="" className="bg-[#2c3258]">VVIP</option>
-                                <option value="" className="bg-[#2c3258]">UMAZING</option>
-                                <option value="" className="bg-[#2c3258]">UMAXXING</option>
-                                <option value="" className="bg-[#2c3258]">WEIII</option>
+                                {levels.map((level)=>(
+                                    <option value={level.id} className="bg-[#2c3258]">{level.name}</option>
+                                ))}
                             </select>
+                            {errorCreate.level_id && <p className="text-red-400">{errorCreate.level_id[0]}</p>}
                         </div>
                         <div className="flex flex-col gap-2">
                             <label htmlFor="" className="font-semibold">Time (hour)</label>
-                            <input type="number" min={1} step={0} name="" id="" placeholder="Enter time"  className="[#2c3258] border-[#353b64] hover:border-[#505a97] transition-all border-2 rounded-md p-2 px-3 focus:outline-none"/>
+                            <input type="number" min={1} step={0} name="" id="" placeholder="Enter time"  className="[#2c3258] border-[#353b64] hover:border-[#505a97] transition-all border-2 rounded-md p-2 px-3 focus:outline-none" value={time} onChange={putTime}/>
+                            {errorCreate.time && <p className="text-red-400">{errorCreate.time[0]}</p>}
                         </div>
-                        <div className="flex gap-3">
-                            <div className="flex gap-2">
-                                <input type="radio" name="member" id="" />
-                                <label htmlFor="">Member</label>
-                            </div>
-                            <div className="flex gap-2">
-                                <input type="radio" name="member" id="" />
-                                <label htmlFor="">Not Member</label>
-                            </div>
+                        <div className="flex flex-col gap-2">
+                            <label htmlFor="" className="font-semibold">Status</label>
+                            <select name="" id="" className="[#2c3258] border-[#353b64] hover:border-[#505a97] transition-all border-2 rounded-md p-2 px-3 focus:outline-none"onChange={e => setFormCreate({...formCreate, status:e.target.value})}>
+                                <option value="" disabled selected className="bg-[#2c3258]">Select Status</option>
+                                <option value="Occupied" className="bg-[#2c3258]">Occupied</option>
+                                <option value="Not Occupied" className="bg-[#2c3258]">Not Occupied</option>
+                            </select>
+                            {errorCreate.status && <p className="text-red-400">{errorCreate.status[0]}</p>}
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                             <label htmlFor="" className="font-semibold">Price:</label>
-                            <div className="bg-[#505a97] p-1 px-3 rounded-md">$67</div>
+                            <div className="bg-[#505a97] p-1 px-3 rounded-md">${Math.round(levelPrice * time)}</div>
                         </div>
                         <div>
-                            <button className="bg-[#505a97] hover:bg-[#444d8c] p-3 px-4 rounded-md mt-6 w-full" onClick={()=> openCreate()}>Create</button>
+                            <button className="bg-[#505a97] hover:bg-[#444d8c] p-3 px-4 rounded-md mt-6 w-full" type="submit">Create</button>
                         </div>
                     </form>
                 </div>
@@ -75,39 +253,37 @@ export default function AdminOrder(){
                             <X/>
                         </div>
                     </div>
-                    <form action="" className="mt-8 flex flex-col gap-4">
+                    <form action="" className="mt-8 flex flex-col gap-4" onSubmit={handleEdit}>
                         <div className="flex flex-col gap-2">
                             <label htmlFor="" className="font-semibold">Level</label>
-                            <select name="" id="" className="[#2c3258] border-[#353b64] hover:border-[#505a97] transition-all border-2 rounded-md p-2 px-3 focus:outline-none">
+                            <select name="" id="" className="[#2c3258] border-[#353b64] hover:border-[#505a97] transition-all border-2 rounded-md p-2 px-3 focus:outline-none" value={levelid} onChange={putLevelid}>
                                 <option value="" disabled selected className="bg-[#2c3258]">Select Level</option>
-                                <option value="" className="bg-[#2c3258]">Reguler</option>
-                                <option value="" className="bg-[#2c3258]">VIP</option>
-                                <option value="" className="bg-[#2c3258]">VVIP</option>
-                                <option value="" className="bg-[#2c3258]">UMAZING</option>
-                                <option value="" className="bg-[#2c3258]">UMAXXING</option>
-                                <option value="" className="bg-[#2c3258]">WEIII</option>
+                                {levels.map((level)=>(
+                                    <option value={level.id} className="bg-[#2c3258]">{level.name}</option>
+                                ))}
                             </select>
+                            {errorEdit.level_id && <p className="text-red-400">{errorEdit.level_id[0]}</p>}
                         </div>
                         <div className="flex flex-col gap-2">
                             <label htmlFor="" className="font-semibold">Time (hour)</label>
-                            <input type="number" min={1} step={0} name="" id="" placeholder="Enter time"  className="[#2c3258] border-[#353b64] hover:border-[#505a97] transition-all border-2 rounded-md p-2 px-3 focus:outline-none"/>
+                            <input type="number" min={1} step={0} name="" id="" placeholder="Enter time"  className="[#2c3258] border-[#353b64] hover:border-[#505a97] transition-all border-2 rounded-md p-2 px-3 focus:outline-none" value={time} onChange={putTime}/>
+                            {errorEdit.time && <p className="text-red-400">{errorEdit.time[0]}</p>}
                         </div>
-                        <div className="flex gap-3">
-                            <div className="flex gap-2">
-                                <input type="radio" name="member" id="" />
-                                <label htmlFor="">Member</label>
-                            </div>
-                            <div className="flex gap-2">
-                                <input type="radio" name="member" id="" />
-                                <label htmlFor="">Not Member</label>
-                            </div>
+                        <div className="flex flex-col gap-2">
+                            <label htmlFor="" className="font-semibold">Status</label>
+                            <select name="" id="" className="[#2c3258] border-[#353b64] hover:border-[#505a97] transition-all border-2 rounded-md p-2 px-3 focus:outline-none"onChange={e => setFormEdit({...formEdit, status:e.target.value})}>
+                                <option value="" disabled selected className="bg-[#2c3258]">Select Status</option>
+                                <option value="Occupied" className="bg-[#2c3258] " selected={formEdit.status == "Occupied"}>Occupied</option>
+                                <option value="Not Occupied" className="bg-[#2c3258]" selected={formEdit.status == "Not Occupied"}>Not Occupied</option>
+                            </select>
+                            {errorEdit.status && <p className="text-red-400">{errorEdit.status[0]}</p>}
                         </div>
                         <div className="flex items-center gap-2 mt-2">
                             <label htmlFor="" className="font-semibold">Price:</label>
-                            <div className="bg-[#505a97] p-1 px-3 rounded-md">$67</div>
+                            <div className="bg-[#505a97] p-1 px-3 rounded-md">${Math.round(levelPrice * time)}</div>
                         </div>
                         <div>
-                            <button className="bg-[#505a97] hover:bg-[#444d8c] p-3 px-4 rounded-md mt-6 w-full" onClick={()=> openEdit()}>Edit</button>
+                            <button className="bg-[#505a97] hover:bg-[#444d8c] p-3 px-4 rounded-md mt-6 w-full" type="submit">Save</button>
                         </div>
                     </form>
                 </div>
@@ -134,28 +310,32 @@ export default function AdminOrder(){
                                 <th className="border-r-2 border-[#505a97] p-2">User</th>
                                 <th className="border-r-2 border-[#505a97] p-2">Level</th>
                                 <th className="border-r-2 border-[#505a97] p-2">Time</th>
-                                <th className="border-r-2 border-[#505a97] p-2">Price</th>
+                                <th className="border-r-2 border-[#505a97] p-2">Price Payed</th>
+                                <th className="border-r-2 border-[#505a97] p-2">Status</th>
                                 <th className="">Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr className="border-b border-[#505a97]">
-                                <td className="border-r border-[#505a97] p-2">No</td>
-                                <td className="border-r border-[#505a97] p-2">User</td>
-                                <td className="border-r border-[#505a97] p-2">Level</td>
-                                <td className="border-r border-[#505a97] p-2">Time</td>
-                                <td className="border-r border-[#505a97] p-2">Price</td>
-                                <td className="w-30 p-2">
-                                    <div className="flex w-full justify-center items-center gap-2">
-                                        <div className="p-1 px-2 bg-[#4b5ec0] hover:bg-[#3d50ae] transition-all rounded-md" onClick={()=> openEdit()}>
-                                            <Edit/>
+                            {orders.map((order, index)=>(
+                                <tr className="border-b border-[#505a97]" key={order.id}>
+                                    <td className="border-r border-[#505a97] p-2">{index + 1}</td>
+                                    <td className="border-r border-[#505a97] p-2">{order.user.username}</td>
+                                    <td className="border-r border-[#505a97] p-2">{order.level.name}</td>
+                                    <td className="border-r border-[#505a97] p-2">{order.time}</td>
+                                    <td className="border-r border-[#505a97] p-2">${order.price_payed}</td>
+                                    <td className="border-r border-[#505a97] p-2">{order.status}</td>
+                                    <td className="w-30 p-2">
+                                        <div className="flex w-full justify-center items-center gap-2">
+                                            <div className="p-1 px-2 bg-[#4b5ec0] hover:bg-[#3d50ae] transition-all rounded-md" onClick={()=> openEdit(order.id)}>
+                                                <Edit/>
+                                            </div>
+                                            <div className="p-1 px-2 bg-[#c04b4b] hover:bg-[#ae3d3d] transition-all rounded-md" onClick={()=> handleDelete(order.id)}>
+                                                <Trash/>
+                                            </div>
                                         </div>
-                                        <div className="p-1 px-2 bg-[#c04b4b] hover:bg-[#ae3d3d] transition-all rounded-md">
-                                            <Trash/>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>

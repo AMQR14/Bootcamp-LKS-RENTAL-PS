@@ -1,11 +1,13 @@
 import { Menu } from 'lucide-react'
 import { useState } from 'react'
 import {Link, useLocation} from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 export default function AdminLayout({children}){
     const location = useLocation()
     const [openSide, setOpenSide] = useState(true)
     const [openProfile, setOpenProfile] = useState(false)
+    const {logout} = useAuth()
 
     const openingSide = () =>{
         setOpenSide(!openSide)
@@ -45,9 +47,7 @@ export default function AdminLayout({children}){
                         <div className='h-0.5 w-full bg-[#2c3258]'>
                             <div></div>
                         </div>
-                        <Link to={'/home'}>
-                            <button className='p-2 px-4 w-full rounded-md bg-[#b95656] hover:bg-[#d16e6e] transition-all'>Logout</button>
-                        </Link>
+                            <button className='p-2 px-4 w-full rounded-md bg-[#b95656] hover:bg-[#d16e6e] transition-all' onClick={()=> logout()}>Logout</button>
                     </div>
                 </div>
             </div> : ''}
