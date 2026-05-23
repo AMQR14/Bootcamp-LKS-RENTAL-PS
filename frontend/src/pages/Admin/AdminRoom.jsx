@@ -41,6 +41,13 @@ export default function AdminRoom(){
         setRoomid(id)
     }
 
+    const [del, setDel] = useState(false)
+
+    const openDelete = (id) => {
+        setDel(!del)
+        setRoomid(id)
+    }
+
     async function handleCreate(e) {
         e.preventDefault()
         setErrorCreate({})
@@ -89,6 +96,7 @@ export default function AdminRoom(){
         setLoading(true)
         try{
             await api.delete(`/room/${id}`)
+            openDelete()
             fetchAllRoom()
         }finally{
             setLoading(false)
@@ -125,6 +133,16 @@ export default function AdminRoom(){
             fetchRoom()
         }
     }, [roomid])
+
+    const [search, setSearch] = useState('')
+
+    const putSearch = (e) => {
+        setSearch(e.target.value)
+    }
+
+    const filter = rooms.filter((room)=>(
+        room.name.toLowerCase().includes(search.toLowerCase())
+    ))
 
     return (
         <AdminLayout>
@@ -209,13 +227,26 @@ export default function AdminRoom(){
                     </form>
                 </div>
             </Dialog>: ''}
+
+            {del 
+            ? <Dialog>
+                <div className="h-50 justify-between flex flex-col">
+                    <div className="text-center text-lg my-2 mt-10">Are you sure you want to delete?</div>
+                    <div>
+                        <div className="flex justify-end w-full mt-10 gap-4">
+                            <button className="p-2 px-4 rounded-md bg-[#c04b4b] hover:bg-[#ae3d3d] transition-all" onClick={()=> handleDelete(roomid)}>Delete</button>
+                            <button className="p-2 px-4 rounded-md bg-[#505a97] hover:bg-[#444d8c] transition-all" onClick={()=> openDelete()}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </Dialog>: ''}
             
             <div>
                 <div className="flex justify-between items-center">
                     <p className="text-xl font-semibold">Room</p>
                     <div className="flex gap-4">
                         <div className="border-2 rounded-md h-full border-[#353b64] hover:border-[#505a97] transition-all flex items-center">
-                            <input type="text" name="" id="" placeholder="Search..." className="rounded-md p-2 px-3 focus:outline-none"/>
+                            <input type="text" name="" id="" placeholder="Search..." className="rounded-md p-2 px-3 focus:outline-none" value={search} onChange={putSearch}/>
                             <Search className="mr-2 text-[#505a97]"/>
                         </div>
                         <div className="bg-[#505a97] hover:bg-[#444d8c] transition-all rounded-md p-2 px-3 flex items-center  justify-center" onClick={()=> openCreate()}>
@@ -223,6 +254,7 @@ export default function AdminRoom(){
                         </div>
                     </div>
                 </div>
+                {loading ? `Loading...` :  rooms.length == 0 ? 'There is no rooms' :
                 <div className="mt-4 border border-[#505a97] w-full">
                     <table className="w-full">
                         <thead className="border-b border-[#505a97]">
@@ -236,7 +268,7 @@ export default function AdminRoom(){
                             </tr>
                         </thead>
                         <tbody>
-                            {rooms.map((room, index)=>(
+                            {filter.map((room, index)=>(
                                 <tr className="border-b border-[#505a97]" key={room.id}>
                                     <td className="border-r border-[#505a97] p-2">{index + 1}</td>
                                     <td className="border-r border-[#505a97] p-2">{room.name}</td>
@@ -248,7 +280,7 @@ export default function AdminRoom(){
                                             <div className="p-1 px-2 bg-[#4b5ec0] hover:bg-[#3d50ae] transition-all rounded-md" onClick={()=> openEdit(room.id)}>
                                                 <Edit/>
                                             </div>
-                                            <div className="p-1 px-2 bg-[#c04b4b] hover:bg-[#ae3d3d] transition-all rounded-md" onClick={()=> handleDelete(room.id)}>
+                                            <div className="p-1 px-2 bg-[#c04b4b] hover:bg-[#ae3d3d] transition-all rounded-md" onClick={()=> openDelete(room.id)}>
                                                 <Trash/>
                                             </div>
                                         </div>
@@ -257,7 +289,7 @@ export default function AdminRoom(){
                             ))}
                         </tbody>
                     </table>
-                </div>
+                </div>}
             </div>
         </AdminLayout>
     )

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import api from '../lib/api'
+import { useNavigate } from "react-router-dom"
 
 const AuthContext = createContext()
 
@@ -38,8 +39,8 @@ export default function AuthProvider({children}){
         try{
             await api.post('/logout', {})
         }finally{
-            setUser(null)
             localStorage.removeItem('token')
+            setUser(null)
         }
     }
 
